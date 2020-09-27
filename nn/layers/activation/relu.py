@@ -19,7 +19,9 @@ class ReLU(nn.BaseLayer):
 
 
 def __relu_test(LayerTest):
-    LayerTest(torch.nn.ReLU(), ReLU())()
+    test = LayerTest(torch.nn.ReLU(), ReLU())
+    shape = (1000,)
+    test(torch.nn.functional.mse_loss, torch.randn(shape), shape)
 
 
 if __name__ == '__main__':
