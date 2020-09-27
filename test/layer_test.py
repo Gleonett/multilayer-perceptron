@@ -6,14 +6,14 @@ from test import PrintColors, cls_path
 
 class LayerTest(object):
 
-    def __init__(self, gt_l, test_l: nn.BaseLayer):
+    def __init__(self, gt_l, test_l: nn.BaseLayer, eps=1e-6):
         self.gt_l = gt_l
         self.test_l = test_l
-        self.eps = 1e-6
+        self.eps = eps
 
     @staticmethod
-    def distance(x, y):
-        return (x - y).data.abs().sum().numpy()
+    def distance(x, y, dim):
+        return torch.norm(x - y, dim=dim).sum()
 
     @staticmethod
     def insert_middle_substr(substring, char, size=70):
@@ -39,11 +39,11 @@ class LayerTest(object):
         name = cls_path(self.test_l)
         print(PrintColors.HEADER + self.insert_middle_substr(name, '#', size=35))
 
-        dist = self.distance(gt, test)
+        dist = self.distance(gt, test, len(shape) - 1)
         color = PrintColors.OKGREEN if dist <= self.eps else PrintColors.FAIL
         print(color + "FORWARD  distance\t: {:.6f}".format(dist))
 
-        grad_dist = self.distance(x_gt.grad, test_grad)
+        grad_dist = self.distance(x_gt.grad, test_grad, len(shape) - 1)
         color = PrintColors.OKGREEN if grad_dist <= self.eps else PrintColors.FAIL
         print(color + "BACKWARD distance\t: {:.6f}".format(grad_dist))
         print(PrintColors.ENDC)
