@@ -8,10 +8,10 @@ class ReLU(nn.BaseLayer):
     def __init__(self):
         super(ReLU, self).__init__()
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         return x.clamp(min=0)
 
-    def backward(self, grad):
+    def backward(self, grad: torch.Tensor):
         x, = self.saved_for_backward
         grad = grad.clone()
         grad[x < 0] = 0
@@ -20,7 +20,7 @@ class ReLU(nn.BaseLayer):
 
 def __relu_test(LayerTest):
     test = LayerTest(torch.nn.ReLU(), ReLU())
-    shape = (500,32)
+    shape = (500, 32)
     test(torch.nn.functional.mse_loss, torch.randn(shape), shape)
 
 
