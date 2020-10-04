@@ -5,9 +5,6 @@ import nn
 
 class ReLU(nn.BaseLayer):
 
-    def __init__(self):
-        super(ReLU, self).__init__()
-
     def forward(self, x: torch.Tensor):
         return x.clamp(min=0)
 

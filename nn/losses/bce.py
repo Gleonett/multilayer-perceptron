@@ -1,19 +1,20 @@
 import torch
+from torch import Tensor
 
 from nn import BaseLoss
 
 
 class BCELoss(BaseLoss):
 
-    def forward(self, p: torch.Tensor, y: torch.Tensor):
-        return -torch.where(y == 1, p.log(), (1 - p).log()).mean()
+    def update_output(self, input: Tensor, target: Tensor):
+        return -torch.where(target == 1, input.log(), (1 - input).log())
 
-    def backward(self, p: torch.Tensor, y: torch.Tensor):
-        return torch.where(y == 1, -1 / p, 1 / (1 - p)) / p.nelement()
+    def update_grad(self, input: Tensor, target: Tensor):
+        return torch.where(target == 1, -1 / input, 1 / (1 - input))
 
 
 def __bce_test(LossTest):
-    shape = (200, 2)
+    shape = (200, 1)
     test = LossTest(torch.nn.BCELoss(), BCELoss(), 1e-4)
     inp = torch.rand(shape)
     y = torch.randint(low=0, high=2, size=shape).float()

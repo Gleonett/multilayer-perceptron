@@ -1,19 +1,20 @@
 import torch
+from torch import Tensor
 
 from nn import BaseLoss
 
 
 class MSELoss(BaseLoss):
 
-    def forward(self, p: torch.Tensor, y: torch.Tensor):
-        return ((y - p) ** 2).mean()
+    def update_output(self, input: Tensor, target: Tensor):
+        return (target - input) ** 2
 
-    def backward(self, p: torch.Tensor, y: torch.Tensor):
-        return -2 * (y - p) / p.nelement()
+    def update_grad(self, input: Tensor, target: Tensor):
+        return (input - target) * 2
 
 
 def __mse_test(LossTest):
-    shape = (200, 2)
+    shape = (200, 1)
     test = LossTest(torch.nn.MSELoss(), MSELoss(), 1e-4)
     inp = torch.rand(shape)
     y = torch.rand(shape)
