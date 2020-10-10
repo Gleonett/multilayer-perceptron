@@ -1,4 +1,5 @@
 import torch
+from torch import Tensor
 
 import nn
 
@@ -9,12 +10,12 @@ class Softmax(nn.BaseLayer):
         super(Softmax, self).__init__()
         self.dim = dim
 
-    def forward(self, x: torch.Tensor):
-        x_exp = (x - x.max(dim=1, keepdim=True).values).exp()
+    def update_output(self, input: Tensor):
+        x_exp = (input - input.max(dim=1, keepdim=True).values).exp()
         return x_exp / x_exp.sum(dim=self.dim, keepdim=True)
 
-    def backward(self, grad: torch.Tensor):
-        inp, = self.saved_for_backward
+    def update_grad(self, grad: Tensor):
+        inp = self.input
         p = self.forward(inp)
         dA = (grad * p).sum(dim=self.dim, keepdim=True)
         return p * (grad - dA)

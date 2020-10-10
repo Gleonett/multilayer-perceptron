@@ -1,17 +1,18 @@
 import torch
+from torch import Tensor
 
 import nn
 
 
 class ReLU(nn.BaseLayer):
 
-    def forward(self, x: torch.Tensor):
-        return x.clamp(min=0)
+    def update_output(self, input: Tensor):
+        return input.clamp(min=0)
 
-    def backward(self, grad: torch.Tensor):
-        x, = self.saved_for_backward
+    def update_grad(self, grad: Tensor):
+        input = self.input
         grad = grad.clone()
-        grad[x < 0] = 0
+        grad[input < 0] = 0
         return grad
 
 
