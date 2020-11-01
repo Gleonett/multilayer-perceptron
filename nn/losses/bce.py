@@ -1,7 +1,7 @@
 import torch
 from torch import Tensor
 
-from nn import BaseLoss
+from nn.losses.base_loss import BaseLoss
 
 
 class BCELoss(BaseLoss):

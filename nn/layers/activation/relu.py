@@ -1,10 +1,10 @@
 import torch
 from torch import Tensor
 
-import nn
+from nn.layers.base_layer import BaseLayer
 
 
-class ReLU(nn.BaseLayer):
+class ReLU(BaseLayer):
 
     def update_output(self, input: Tensor):
         return input.clamp(min=0)

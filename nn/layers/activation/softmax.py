@@ -1,10 +1,10 @@
 import torch
 from torch import Tensor
 
-import nn
+from nn.layers.base_layer import BaseLayer
 
 
-class Softmax(nn.BaseLayer):
+class Softmax(BaseLayer):
 
     def __init__(self, dim=1):
         super(Softmax, self).__init__()

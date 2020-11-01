@@ -14,7 +14,7 @@ class BaseLayer(object):
         raise NotImplementedError
 
     def forward(self, input: Tensor):
-        if not self.train_mode:
+        if self.train_mode:
             self.save_for_backward(input)
         return self.update_output(input)
 
@@ -23,6 +23,15 @@ class BaseLayer(object):
 
     def __call__(self, input: Tensor):
         return self.forward(input)
+
+    def zero_grad(self):
+        pass
+
+    def get_params(self):
+        return []
+
+    def get_grad_params(self):
+        return []
 
     def save_for_backward(self, input: Tensor):
         self.input = input.clone()
