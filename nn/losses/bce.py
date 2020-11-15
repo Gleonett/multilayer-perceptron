@@ -3,13 +3,16 @@ from torch import Tensor
 
 from nn.losses.base_loss import BaseLoss
 
+EPSILON = 1e-7
 
 class BCELoss(BaseLoss):
 
     def update_output(self, input: Tensor, target: Tensor):
+        input = torch.clamp(input, EPSILON, 1.0 - EPSILON)
         return -torch.where(target == 1, input.log(), (1 - input).log())
 
     def update_grad(self, input: Tensor, target: Tensor):
+        input = torch.clamp(input, EPSILON, 1.0 - EPSILON)
         return torch.where(target == 1, -1 / input, 1 / (1 - input))
 
 
