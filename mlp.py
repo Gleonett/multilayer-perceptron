@@ -3,23 +3,17 @@ import numpy as np
 
 from utils.data import Dataset
 from utils.config import Config
+from utils.profiler import Profiler
 from utils.pytorch import get_device, to_tensor, accuracy
 from nn.preprocessing import scalers
 
 from nn.init.he import he
-from nn.init.xavier import xavier
-from nn.init.standard import standard
 from nn.losses.bce import BCELoss
 from nn.layers.linear import Linear
-from nn.optim.sgd import sgd_momentum
 from nn.layers.activation.relu import ReLU
-from nn.models.sequential import Sequential
 from nn.layers.activation.softmax import Softmax
-
-
-seed = 21
-torch.manual_seed(seed)
-np.random.seed(seed)
+from nn.optim.sgd import sgd_momentum
+from nn.models.sequential import Sequential
 
 
 def prep_data(X, y, device):
@@ -59,8 +53,10 @@ def train(data, model, scale, config):
     state = {}
     results = []
 
+    profiler = Profiler("TRAIN TIME")
     for i in range(config.epochs):
-        output = model.forward(X_train)
+        profiler.tick()
+        output = model(X_train)
 
         loss = criterion(output, y_train)
         grad = criterion.backward(output, y_train)
@@ -72,11 +68,12 @@ def train(data, model, scale, config):
 
         sgd_momentum(params, grad_params, config.lr, state)
         if i % 10 == 0:
-            pred = model.forward(X_test)
+            pred = model(X_test)
             val_loss = criterion(pred, y_test)
             error = accuracy(torch.argmin(pred, dim=1), y_test[:, 0])
             results.append([error, loss, val_loss, i])
-
+        profiler.tock()
+    print(profiler)
     print("========== RESULT ==========")
     results = np.array(results)
     idxs = np.argsort(results[:, 0])[::-1]
@@ -98,7 +95,13 @@ def evaluate(data, model, scale, config):
     X = scale(X)
 
     model.eval()
-    pred = model.forward(X)
+
+    profiler = Profiler("INFERENCE TIME")
+    profiler.tick()
+    pred = model(X)
+    profiler.tock()
+    print(profiler)
+
     criterion = BCELoss()
     error = criterion(pred, y)
     print("BCE: {:.4f}".format(error))
@@ -115,11 +118,17 @@ if __name__ == '__main__':
     parser.add_argument("--config", type=str, default="config.yaml",
                         help="Path to train dataset")
     args = parser.parse_args()
+
     config = Config(args.config)
 
+    if config.seed:
+        torch.manual_seed(config.seed)
+        np.random.seed(config.seed)
 
     data = Dataset.read_csv(args.data, header=None)
+
     scale = scalers[config.scale]()
+
     model = get_model(input_shape=30)
     print(model)
 

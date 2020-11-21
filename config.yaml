@@ -21,7 +21,7 @@ batch_size: null
 ## Random seed to reproduce results.
 ## seed >= 0
 ## null - means no random seed
-seed: 42
+seed: 21
 
 # PREPROCESSING
 
