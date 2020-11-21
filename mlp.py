@@ -2,9 +2,9 @@ import torch
 import numpy as np
 
 from utils.data import Dataset
-from utils.pytorch import get_device, to_tensor
-from nn.preprocessing.minmax_scale import MinMaxScale
-from nn.preprocessing.standard_scale import StandardScale
+from utils.config import Config
+from utils.pytorch import get_device, to_tensor, accuracy
+from nn.preprocessing import scalers
 
 from nn.init.he import he
 from nn.init.xavier import xavier
@@ -22,95 +22,60 @@ torch.manual_seed(seed)
 np.random.seed(seed)
 
 
-def prep_data(path, columns, device):
-
-    data = Dataset.read_csv(path, header=None)
-    # data = Dataset(data.replace(0, None).fillna(method='ffill'))
-
-    X_train, y_train, X_test, y_test = data.split(train_part=0.75)
-
-    print(np.squeeze(np.argwhere(~(X_train == 0).any(axis=0))))
-
-    X_train = X_train[:, columns]
-    X_test = X_test[:, columns]
-
-    mask = ~(X_train == 0).any(axis=1)
-    print((~mask).sum())
-    # X_train = X_train[mask]
-    # y_train = y_train[mask]
-
-    print("M train: {:.2f}%".format(y_train[:, 0].sum() / y_train.shape[0] * 100))
-    print("M test: {:.2f}%".format(y_test[:, 0].sum() / y_test.shape[0] * 100))
-
-    X_train = to_tensor(X_train, device, torch.float32)
-    y_train = to_tensor(y_train, device, torch.uint8)
-
-    X_test = to_tensor(X_test, device, torch.float32)
-    y_test = to_tensor(y_test, device, torch.uint8)
-
-    return X_train, y_train, X_test, y_test
+def prep_data(X, y, device):
+    X = to_tensor(X, device, torch.float32)
+    y = to_tensor(y, device, torch.uint8)
+    return X, y
 
 
-if __name__ == '__main__':
-    path = "data/data.csv"
-    device = "cpu"
-    device = get_device(device)
-    # columns = [0, 1, 6, 9, 10, 15, 16, 17, 19, 24, 26, 28, 29]
-    # columns = [0, 1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 18, 19, 20, 21, 22, 23, 24, 25, 28, 29]
-    columns = range(0, 30)
-
-    X_train, y_train, X_test, y_test = prep_data(path, columns, device)
-    # scale = MinMaxScale()
-    scale = StandardScale()
-    scale.fit(X_train)
-
-    X_train = scale(X_train)
-    X_test = scale(X_test)
-
-    input_shape = X_train.shape[1]
-    print("input shape:", input_shape)
-
+def get_model(input_shape):
     model = Sequential()
-    model.add(Linear(input_shape, 32, he))
+    model.add(Linear(input_shape, 16, he))
     model.add(ReLU())
-    model.add(Linear(32, 16, he))
+    model.add(Linear(16, 16, he))
     model.add(ReLU())
     model.add(Linear(16, 2, he))
     model.add(Softmax())
-    model.train()
+    return model
+
+
+def train(data, model, scale, config):
+    device = get_device(config.device)
+    X_train, y_train, X_test, y_test = data.split(config.train_part, shuffle=True)
+    X_train, y_train = prep_data(X_train, y_train, device)
+    X_test, y_test = prep_data(X_test, y_test, device)
+
+    print("first label in train part: {:.2f}%"
+          .format(y_train[:, 0].sum().float() / y_train.shape[0] * 100))
+    print("first label in test part: {:.2f}%"
+          .format(y_test[:, 0].sum().float() / y_test.shape[0] * 100))
+
+    scale.fit(X_train)
+    X_train = scale(X_train)
+    X_test = scale(X_test)
+
 
     criterion = BCELoss()
-
     state = {}
-
-    pred = model.forward(X_test)
-    error = criterion(pred, y_test)
-    print("result", error)
-
     results = []
 
-    for i in range(1000):
+    for i in range(config.epochs):
         output = model.forward(X_train)
 
         loss = criterion(output, y_train)
         grad = criterion.backward(output, y_train)
-        # print(grad)
 
         model.backward(grad)
 
         params = model.get_params()
         grad_params = model.get_grad_params()
 
+        sgd_momentum(params, grad_params, config.lr, state)
         if i % 10 == 0:
             pred = model.forward(X_test)
-            error = 1 - criterion(pred, y_test)
-            # print("+" * 20)
-            # print("iteration:", i)
-            # print("loss: {:.6f}".format(loss))
-            # print("eval: {:.6f}".format(error))
-            results.append([error, loss, i])
-
-        sgd_momentum(params, grad_params, 1e-4, state)
+            val_loss = criterion(pred, y_test)
+            error = accuracy(torch.argmin(pred, dim=1), y_test[:, 0])
+            results.append([error, loss, val_loss, i])
 
     print("========== RESULT ==========")
     results = np.array(results)
@@ -118,14 +83,47 @@ if __name__ == '__main__':
     results = results[idxs]
 
     for result in results[:5]:
-        print("epoch:", int(result[2]))
+        print("epoch:", int(result[3]))
         print("loss: {:.6f}".format(result[1]))
+        print("val_loss: {:.6f}".format(result[2]))
         print("accuracy: {:.6f}".format(result[0]))
         print('-' * 25)
 
-    X = torch.cat([X_train, X_test])
-    y = torch.cat([y_train, y_test])
 
+def evaluate(data, model, scale, config):
+    device = get_device(config.device)
+    X, y, _, _ = data.split(1, shuffle=False)
+    X, y = prep_data(X, y, device)
+
+    X = scale(X)
+
+    model.eval()
     pred = model.forward(X)
-    error = 1 - criterion(pred, y)
-    print(error)
+    criterion = BCELoss()
+    error = criterion(pred, y)
+    print("BCE: {:.4f}".format(error))
+
+    acc = accuracy(torch.argmin(pred, dim=1), y[:, 0])
+    print("accuracy: {:.4f}".format(acc))
+
+
+if __name__ == '__main__':
+    from argparse import ArgumentParser
+    parser = ArgumentParser()
+    parser.add_argument("--data", type=str, default="data/data.csv",
+                        help="Path to train dataset")
+    parser.add_argument("--config", type=str, default="config.yaml",
+                        help="Path to train dataset")
+    args = parser.parse_args()
+    config = Config(args.config)
+
+
+    data = Dataset.read_csv(args.data, header=None)
+    scale = scalers[config.scale]()
+    model = get_model(input_shape=30)
+    print(model)
+
+    train(data, model, scale, config)
+
+    evaluate(data, model, scale, config)
+

@@ -11,6 +11,7 @@ class Linear(BaseLayer):
     def __init__(self, n_in, n_out, initializer=None):
         super(Linear, self).__init__()
 
+        self.in_out = (n_in, n_out)
         self.W = None
         self.b = None
         if initializer:
@@ -38,5 +39,4 @@ class Linear(BaseLayer):
         return self.grad_W, self.grad_b
 
     def __str__(self):
-        shape = self.W.shape
-        return 'Linear %d->%d' % (shape[0], shape[1])
+        return '{} {}->{}'.format(type(self).__name__, *self.in_out)

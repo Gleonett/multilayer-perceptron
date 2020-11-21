@@ -14,18 +14,21 @@ class Dataset(pd.DataFrame, ABC):
         """
         return Dataset(pd.read_csv(csv_path, **kwargs))
 
-    def split(self, train_part: float):
+    def split(self, train_part: float, shuffle: bool):
         assert 0 <= train_part <= 1
 
-        permuted = np.random.permutation(self)
+        if shuffle:
+            shuffled = np.random.permutation(self)
+        else:
+            shuffled = self.to_numpy()
 
         train_num = int(self.shape[0] * train_part)
-        X_train = permuted[:train_num, 2:].astype(np.float32)
-        y_train = (permuted[:train_num, 1] == 'M')
+        X_train = shuffled[:train_num, 2:].astype(np.float32)
+        y_train = (shuffled[:train_num, 1] == 'M')
         y_train = np.vstack([y_train, ~y_train]).T.astype(np.uint8)
 
-        X_test = permuted[train_num:, 2:].astype(np.float32)
-        y_test = (permuted[train_num:, 1] == 'M')
+        X_test = shuffled[train_num:, 2:].astype(np.float32)
+        y_test = (shuffled[train_num:, 1] == 'M')
         y_test = np.vstack([y_test, ~y_test]).T.astype(np.uint8)
 
         return X_train, y_train, X_test, y_test

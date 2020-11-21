@@ -4,7 +4,7 @@ from torch import Tensor
 class BaseLayer(object):
 
     def __init__(self):
-        self.train_mode = False
+        self.train_mode = True
         self.input = None
 
     def update_output(self, input: Tensor):
@@ -41,3 +41,6 @@ class BaseLayer(object):
 
     def eval(self):
         self.train_mode = False
+
+    def __str__(self):
+        return type(self).__name__

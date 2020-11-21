@@ -26,3 +26,10 @@ def to_tensor(x: np.ndarray,
               device: torch.device,
               dtype: torch.dtype) -> torch.Tensor:
     return torch.from_numpy(x).to(device, dtype)
+
+
+def accuracy(pred: torch.Tensor, true: torch.Tensor):
+    assert pred.shape == true.shape
+
+    num_wrong_samples = (pred != true).sum().type(torch.float)
+    return (true.shape[0] - num_wrong_samples) / true.shape[0]

@@ -40,3 +40,9 @@ class BaseModel(object):
         self.train_mode = False
         for module in self.modules:
             module.eval()
+
+    def __str__(self):
+        buf = "Model - " + type(self).__name__ + ":\n"
+        for module in self.modules:
+            buf += str(module) + "\n"
+        return buf
