@@ -10,6 +10,7 @@ from nn.preprocessing import scalers
 from nn.init.he import he
 from nn.losses.bce import BCELoss
 from nn.layers.linear import Linear
+from nn.layers.dropout import Dropout
 from nn.layers.activation.relu import ReLU
 from nn.layers.activation.softmax import Softmax
 from nn.optim.sgd import sgd_momentum
@@ -26,7 +27,11 @@ def get_model(input_shape):
     model = Sequential()
     model.add(Linear(input_shape, 16, he))
     model.add(ReLU())
-    model.add(Linear(16, 16, he))
+    model.add(Dropout(p=0.2))
+    model.add(Linear(16, 32, he))
+    model.add(ReLU())
+    model.add(Dropout(p=0.2))
+    model.add(Linear(32, 16, he))
     model.add(ReLU())
     model.add(Linear(16, 2, he))
     model.add(Softmax())
@@ -135,4 +140,3 @@ if __name__ == '__main__':
     train(data, model, scale, config)
 
     evaluate(data, model, scale, config)
-
