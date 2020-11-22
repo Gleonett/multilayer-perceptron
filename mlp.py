@@ -4,16 +4,18 @@ import numpy as np
 from utils.data import Dataset
 from utils.config import Config
 from utils.profiler import Profiler
+from utils.train_history import TrainHistory
 from utils.pytorch import get_device, to_tensor, accuracy
 from nn.preprocessing import scalers
 
 from nn.init.he import he
 from nn.losses.bce import BCELoss
+from nn.losses.mse import MSELoss
 from nn.layers.linear import Linear
 from nn.layers.dropout import Dropout
 from nn.layers.activation.relu import ReLU
 from nn.layers.activation.softmax import Softmax
-from nn.optim.sgd import sgd_momentum
+from nn.optim.sgd import SGD
 from nn.models.sequential import Sequential
 
 
@@ -27,11 +29,11 @@ def get_model(input_shape):
     model = Sequential()
     model.add(Linear(input_shape, 16, he))
     model.add(ReLU())
-    model.add(Dropout(p=0.2))
-    model.add(Linear(16, 32, he))
-    model.add(ReLU())
-    model.add(Dropout(p=0.2))
-    model.add(Linear(32, 16, he))
+    # model.add(Dropout(p=0.2))
+    # model.add(Linear(16, 32, he))
+    # model.add(ReLU())
+    # model.add(Dropout(p=0.2))
+    model.add(Linear(16, 16, he))
     model.add(ReLU())
     model.add(Linear(16, 2, he))
     model.add(Softmax())
@@ -55,11 +57,13 @@ def train(data, model, scale, config):
 
 
     criterion = BCELoss()
-    state = {}
+    criterion = MSELoss()
+    optimizer = SGD(model, lr=config.lr, momentum=1)
     results = []
 
     profiler = Profiler("TRAIN TIME")
-    for i in range(config.epochs):
+    history = TrainHistory(config.epochs, ["loss", "val_loss", "acc", "val_acc"])
+    for i in range(1, config.epochs):
         profiler.tick()
         output = model(X_train)
 
@@ -68,16 +72,21 @@ def train(data, model, scale, config):
 
         model.backward(grad)
 
-        params = model.get_params()
-        grad_params = model.get_grad_params()
+        optimizer.optimise()
 
-        sgd_momentum(params, grad_params, config.lr, state)
-        if i % 10 == 0:
-            pred = model(X_test)
-            val_loss = criterion(pred, y_test)
-            error = accuracy(torch.argmin(pred, dim=1), y_test[:, 0])
-            results.append([error, loss, val_loss, i])
+        if i % 2 == 0:
+            test_pred = model(X_test)
+            test_loss = criterion(test_pred, y_test)
+            test_acc = accuracy(test_pred[:, 0] > 0.5, y_test[:, 0])
+            results.append([test_acc, loss, test_loss, i])
+            acc = accuracy(output[:, 0] > 0.5, y_train[:, 0])
+
+            history.update(i, loss, test_loss, acc, test_acc)
+            history.print_progress()
+
         profiler.tock()
+    history.visualize()
+
     print(profiler)
     print("========== RESULT ==========")
     results = np.array(results)

@@ -1,14 +1,25 @@
 import torch
 
-def sgd_momentum(variables, gradients, learning_rate, state):
-    state.setdefault('accumulated_grads', {})
+class SGD(object):
+    def __init__(self, model, lr, momentum=1):
+        self.lr = lr
+        self.momentum = momentum
+        self.model = model
+        self.accumulated_grads = dict()
 
-    var_index = 0
-    for current_layer_vars, current_layer_grads in zip(variables, gradients):
-        for current_var, current_grad in zip(current_layer_vars, current_layer_grads):
-            old_grad = state['accumulated_grads'].setdefault(var_index, torch.zeros_like(current_grad))
+    def optimise(self):
+        params = self.model.get_params()
+        grad_params = self.model.get_grad_params()
 
-            torch.add(1 * old_grad, learning_rate * current_grad, out=old_grad)
+        idx = 0
+        for current_layer_vars, current_layer_grads in zip(params, grad_params):
+            for current_var, current_grad in zip(current_layer_vars, current_layer_grads):
+                old_grad = self.accumulated_grads.setdefault(idx,
+                                                             torch.zeros_like(current_grad))
 
-            current_var -= old_grad
-            var_index += 1
+                torch.add(self.momentum * old_grad,
+                          self.lr * current_grad,
+                          out=old_grad)
+
+                current_var -= old_grad
+                idx += 1
