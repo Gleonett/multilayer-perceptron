@@ -40,3 +40,26 @@ class Linear(BaseLayer):
 
     def __str__(self):
         return '{} {}->{}'.format(type(self).__name__, *self.in_out)
+
+
+def __linear_test(LayerTest):
+    shape = (500, 32)
+    in_out = (shape[1], 16)
+
+    torch_method = torch.nn.Linear(*in_out)
+
+    my_method = Linear(*in_out)
+    my_method.W = torch_method.weight.detach().clone()
+    my_method.b = torch_method.bias.detach().clone()
+
+    test = LayerTest(torch_method, my_method)
+    test(torch.nn.functional.mse_loss,
+         torch.rand((shape[0], in_out[1])),
+         shape)
+
+
+if __name__ == '__main__':
+    from test.layer_test import LayerTest
+
+    __linear_test(LayerTest)
+

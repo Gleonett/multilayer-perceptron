@@ -5,7 +5,7 @@ from test.base import BaseTest
 class LossTest(BaseTest):
 
     def test(self, y_pred, y_gt):
-        y_pred_gt = y_pred.clone()
+        y_pred_gt = y_pred.detach().clone()
         y_pred_gt.requires_grad = True
         gt = self.gt_method(y_pred_gt, y_gt)
         gt.backward()

@@ -19,7 +19,9 @@ class BCELoss(BaseLoss):
 def __bce_test(LossTest):
     shape = (200, 1)
     test = LossTest(torch.nn.BCELoss(), BCELoss(), 1e-4)
-    inp = torch.rand(shape)
+    inp = torch.rand((shape[0], 2))
+    inp = torch.nn.Softmax(dim=1)(inp)
+    inp = inp[:, [0]]
     y = torch.randint(low=0, high=2, size=shape).float()
     test(inp, y)
 

@@ -7,7 +7,7 @@ class LayerTest(BaseTest):
 
     def test(self, loss, loss_inp, shape):
         x_test = torch.randn(shape)
-        x_gt = x_test.clone()
+        x_gt = x_test.detach().clone()
         x_gt.requires_grad = True
 
         gt = self.gt_method(x_gt)

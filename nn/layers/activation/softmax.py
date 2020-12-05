@@ -9,17 +9,17 @@ class Softmax(BaseLayer):
     def __init__(self, dim=1):
         super(Softmax, self).__init__()
         self.dim = dim
+        self.forward_output = None
 
     def update_output(self, input: Tensor):
         x_exp = (input - input.max(dim=1, keepdim=True).values).exp()
-        return x_exp / x_exp.sum(dim=self.dim, keepdim=True)
+        self.forward_output = x_exp / x_exp.sum(dim=self.dim, keepdim=True)
+        return self.forward_output
 
     def update_grad(self, grad: Tensor):
-        inp = self.input
-        p = self.forward(inp)
+        p = self.forward_output
         dA = (grad * p).sum(dim=self.dim, keepdim=True)
         return p * (grad - dA)
-
 
 def __softmax_test(LayerTest):
     shape = (500, 2)

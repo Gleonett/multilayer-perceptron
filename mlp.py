@@ -27,17 +27,29 @@ def prep_data(X, y, device):
 
 def get_model(input_shape):
     model = Sequential()
-    model.add(Linear(input_shape, 16, he))
+    model.add(Linear(input_shape, 32, he))
     model.add(ReLU())
     # model.add(Dropout(p=0.2))
-    # model.add(Linear(16, 32, he))
-    # model.add(ReLU())
+    model.add(Linear(32, 32, he))
+    model.add(ReLU())
     # model.add(Dropout(p=0.2))
-    model.add(Linear(16, 16, he))
+    model.add(Linear(32, 16, he))
     model.add(ReLU())
     model.add(Linear(16, 2, he))
     model.add(Softmax())
     return model
+
+
+def batch_iterator(X, y, batch_size=None, permute=True):
+    if permute:
+        permutation = torch.randperm(X.shape[0])
+        X = X[permutation]
+        y = y[permutation]
+    if batch_size is None:
+        batch_size = X.shape[0]
+    for i in range(0, X.shape[0], batch_size):
+        begin, end = i, min(i + batch_size, X.shape[0])
+        yield X[begin:end], y[begin:end]
 
 
 def train(data, model, scale, config):
@@ -57,49 +69,42 @@ def train(data, model, scale, config):
 
 
     criterion = BCELoss()
-    criterion = MSELoss()
-    optimizer = SGD(model, lr=config.lr, momentum=1)
+    # criterion = MSELoss()
+    optimizer = SGD(model, lr=config.lr, momentum=0)
     results = []
 
     profiler = Profiler("TRAIN TIME")
     history = TrainHistory(config.epochs, ["loss", "val_loss", "acc", "val_acc"])
     for i in range(1, config.epochs):
-        profiler.tick()
-        output = model(X_train)
+        for batch_X, batch_y in batch_iterator(X_train, y_train, config.batch_size):
+            profiler.tick()
+            output = model(batch_X)
 
-        loss = criterion(output, y_train)
-        grad = criterion.backward(output, y_train)
+            loss = criterion(output, batch_y)
+            grad = criterion.backward(output, batch_y)
 
-        model.backward(grad)
+            model.backward(grad)
 
-        optimizer.optimise()
+            optimizer.optimise()
+            # model.zero_grad()
 
-        if i % 2 == 0:
-            test_pred = model(X_test)
-            test_loss = criterion(test_pred, y_test)
-            test_acc = accuracy(test_pred[:, 0] > 0.5, y_test[:, 0])
-            results.append([test_acc, loss, test_loss, i])
-            acc = accuracy(output[:, 0] > 0.5, y_train[:, 0])
+            profiler.tock()
 
-            history.update(i, loss, test_loss, acc, test_acc)
-            history.print_progress()
+        # if i % 2 == 1:
+        test_pred = model(X_test)
+        test_loss = criterion(test_pred, y_test)
+        test_acc = accuracy(test_pred[:, 0] > 0.5, y_test[:, 0])
 
-        profiler.tock()
+        pred = model(X_train)
+        loss = criterion(pred, y_train)
+        acc = accuracy(pred[:, 0] > 0.5, y_train[:, 0])
+
+        history.update(i, loss, test_loss, acc, test_acc)
+        history.print_progress()
     history.visualize()
 
     print(profiler)
     print("========== RESULT ==========")
-    results = np.array(results)
-    idxs = np.argsort(results[:, 0])[::-1]
-    results = results[idxs]
-
-    for result in results[:5]:
-        print("epoch:", int(result[3]))
-        print("loss: {:.6f}".format(result[1]))
-        print("val_loss: {:.6f}".format(result[2]))
-        print("accuracy: {:.6f}".format(result[0]))
-        print('-' * 25)
-
 
 def evaluate(data, model, scale, config):
     device = get_device(config.device)
@@ -135,7 +140,7 @@ if __name__ == '__main__':
 
     config = Config(args.config)
 
-    if config.seed:
+    if config.seed is not None:
         torch.manual_seed(config.seed)
         np.random.seed(config.seed)
 
