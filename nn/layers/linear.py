@@ -1,6 +1,7 @@
 import torch
 
 from nn.layers.base_layer import BaseLayer
+from nn.init import initializers
 
 
 class Linear(BaseLayer):
@@ -8,14 +9,19 @@ class Linear(BaseLayer):
     grad_W: torch.Tensor
     grad_b: torch.Tensor
 
-    def __init__(self, n_in, n_out, initializer=None):
+    def __init__(self, n_in, n_out, initializer: str = 'none'):
         super(Linear, self).__init__()
 
         self.in_out = (n_in, n_out)
         self.W = None
         self.b = None
-        if initializer:
-            self.W, self.b = initializer(n_in, n_out)
+
+        if initializer != 'none':
+            assert initializer in initializers,\
+                "No such initializer: '{}'".format(initializer)
+
+            init = initializers[initializer]
+            self.W, self.b = init(n_in, n_out)
             self.grad_W = torch.zeros_like(self.W)
             self.grad_b = torch.zeros_like(self.b)
 

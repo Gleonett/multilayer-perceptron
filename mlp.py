@@ -8,7 +8,6 @@ from utils.train_history import TrainHistory
 from utils.pytorch import get_device, to_tensor, accuracy
 from nn.preprocessing import scalers
 
-from nn.init.he import he
 from nn.losses.bce import BCELoss
 from nn.losses.mse import MSELoss
 from nn.layers.linear import Linear
@@ -27,15 +26,15 @@ def prep_data(X, y, device):
 
 def get_model(input_shape):
     model = Sequential()
-    model.add(Linear(input_shape, 32, he))
+    model.add(Linear(input_shape, 16, 'xavier'))
     model.add(ReLU())
     # model.add(Dropout(p=0.2))
-    model.add(Linear(32, 32, he))
+    model.add(Linear(16, 32, 'xavier'))
     model.add(ReLU())
     # model.add(Dropout(p=0.2))
-    model.add(Linear(32, 16, he))
+    model.add(Linear(32, 16, 'xavier'))
     model.add(ReLU())
-    model.add(Linear(16, 2, he))
+    model.add(Linear(16, 2, 'xavier'))
     model.add(Softmax())
     return model
 
@@ -70,13 +69,14 @@ def train(data, model, scale, config):
 
     criterion = BCELoss()
     # criterion = MSELoss()
-    optimizer = SGD(model, lr=config.lr, momentum=0)
+    optimizer = SGD(model, lr=config.lr)
     results = []
 
     profiler = Profiler("TRAIN TIME")
     history = TrainHistory(config.epochs, ["loss", "val_loss", "acc", "val_acc"])
+    j = 1
     for i in range(1, config.epochs):
-        for batch_X, batch_y in batch_iterator(X_train, y_train, config.batch_size):
+        for batch_X, batch_y in batch_iterator(X_train, y_train, config.batch_size, permute=False):
             profiler.tick()
             output = model(batch_X)
 
@@ -90,17 +90,20 @@ def train(data, model, scale, config):
 
             profiler.tock()
 
-        # if i % 2 == 1:
-        test_pred = model(X_test)
-        test_loss = criterion(test_pred, y_test)
-        test_acc = accuracy(test_pred[:, 0] > 0.5, y_test[:, 0])
+            # if i % 2 == 1:
+            test_pred = model(X_test)
+            test_loss = criterion(test_pred, y_test)
+            test_acc = accuracy(torch.argmax(test_pred, dim=1),
+                                torch.argmax(y_test, dim=1))
 
-        pred = model(X_train)
-        loss = criterion(pred, y_train)
-        acc = accuracy(pred[:, 0] > 0.5, y_train[:, 0])
+            pred = model(X_train)
+            loss = criterion(pred, y_train)
+            acc = accuracy(torch.argmax(pred, dim=1),
+                           torch.argmax(y_train, dim=1))
 
-        history.update(i, loss, test_loss, acc, test_acc)
-        history.print_progress()
+            history.update(j, loss, test_loss, acc, test_acc)
+            history.print_progress()
+            j += 1
     history.visualize()
 
     print(profiler)
@@ -123,7 +126,7 @@ def evaluate(data, model, scale, config):
 
     criterion = BCELoss()
     error = criterion(pred, y)
-    print("BCE: {:.4f}".format(error))
+    print("loss: {:.4f}".format(error))
 
     acc = accuracy(torch.argmin(pred, dim=1), y[:, 0])
     print("accuracy: {:.4f}".format(acc))

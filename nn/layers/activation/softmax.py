@@ -6,7 +6,7 @@ from nn.layers.base_layer import BaseLayer
 
 class Softmax(BaseLayer):
 
-    def __init__(self, dim=1):
+    def __init__(self, dim=-1):
         super(Softmax, self).__init__()
         self.dim = dim
         self.forward_output = None
