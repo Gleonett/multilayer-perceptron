@@ -30,20 +30,9 @@ class StandardScale(object):
         """
         return (x - self.mean) / self.std
 
-    def to_dictionary(self) -> {str: Tensor}:
-        """
-        Put scale parameters to dictionary
-        :return: None
-        """
-        return {"mean": self.mean, "std": self.std}
+    def get_params(self) -> (Tensor, Tensor):
+        return self.mean, self.std
 
-    def from_dictionary(self,
-                        dictionary: {str: Tensor},
-                        device: torch.device,
-                        dtype: torch.dtype):
-        """
-        Load scale parameters from dictionary
-        :return: None
-        """
-        self.mean = dictionary["mean"].to(device, dtype)
-        self.std = dictionary["std"].to(device, dtype)
+    def set_params(self, mean: Tensor, std: Tensor):
+        self.mean = mean
+        self.std = std

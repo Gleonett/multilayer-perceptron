@@ -1,3 +1,4 @@
+import torch
 from torch import Tensor
 
 from nn.layers.base_layer import BaseLayer
@@ -40,6 +41,26 @@ class BaseModel(object):
         self.train_mode = False
         for module in self.modules:
             module.eval()
+
+    def to_dict(self):
+        d = dict()
+        for i, module in enumerate(self.modules):
+            d[i] = module.get_params()
+        return d
+
+    def save(self, path: str, scale: None):
+        d = dict()
+        d['model'] = self.to_dict()
+        if scale is not None:
+            d['scale'] = scale.get_params()
+        torch.save(d, path)
+
+    def load(self, path: str, scale: None, device: torch.device = "cpu"):
+        d = torch.load(path)
+        for params, module in zip(d['model'].values(), self.modules):
+            module.set_params(*[param.to(device) for param in params])
+        if scale is not None:
+            scale.set_params(*[param.to(device) for param in d['scale']])
 
     def __str__(self):
         buf = "Model - " + type(self).__name__ + ":\n"

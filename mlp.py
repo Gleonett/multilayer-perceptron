@@ -1,42 +1,19 @@
 import torch
 import numpy as np
+from pathlib import Path
 
 from utils.data import Dataset
 from utils.config import Config
 from utils.profiler import Profiler
-from utils.train_history import TrainHistory
 from utils.pytorch import get_device, to_tensor, accuracy
-from nn.preprocessing import scalers
 
-from nn.losses.bce import BCELoss
-from nn.losses.mse import MSELoss
-from nn.layers.linear import Linear
-from nn.layers.dropout import Dropout
-from nn.layers.activation.relu import ReLU
-from nn.layers.activation.softmax import Softmax
-from nn.optim.sgd import SGD
-from nn.models.sequential import Sequential
+from general_functions import get_model, get_scaler, get_loss
 
 
 def prep_data(X, y, device):
     X = to_tensor(X, device, torch.float32)
     y = to_tensor(y, device, torch.uint8)
     return X, y
-
-
-def get_model(input_shape):
-    model = Sequential()
-    model.add(Linear(input_shape, 16, 'xavier'))
-    model.add(ReLU())
-    # model.add(Dropout(p=0.2))
-    model.add(Linear(16, 32, 'xavier'))
-    model.add(ReLU())
-    # model.add(Dropout(p=0.2))
-    model.add(Linear(32, 16, 'xavier'))
-    model.add(ReLU())
-    model.add(Linear(16, 2, 'xavier'))
-    model.add(Softmax())
-    return model
 
 
 def batch_iterator(X, y, batch_size=None, permute=True):
@@ -51,8 +28,10 @@ def batch_iterator(X, y, batch_size=None, permute=True):
         yield X[begin:end], y[begin:end]
 
 
-def train(data, model, scale, config):
-    device = get_device(config.device)
+def train(data, model, scale, config, device):
+    from nn.optim.sgd import SGD
+    from utils.train_history import TrainHistory
+
     X_train, y_train, X_test, y_test = data.split(config.train_part, shuffle=True)
     X_train, y_train = prep_data(X_train, y_train, device)
     X_test, y_test = prep_data(X_test, y_test, device)
@@ -66,18 +45,16 @@ def train(data, model, scale, config):
     X_train = scale(X_train)
     X_test = scale(X_test)
 
-
-    criterion = BCELoss()
-    # criterion = MSELoss()
-    optimizer = SGD(model, lr=config.lr)
-    results = []
+    criterion = get_loss(config.loss)
+    optimizer = SGD(model, **config.sgd_params)
 
     profiler = Profiler("TRAIN TIME")
     history = TrainHistory(config.epochs, ["loss", "val_loss", "acc", "val_acc"])
-    j = 1
-    for i in range(1, config.epochs):
-        for batch_X, batch_y in batch_iterator(X_train, y_train, config.batch_size, permute=False):
-            profiler.tick()
+
+    for i in range(1, config.epochs + 1):
+        profiler.tick()
+        for batch_X, batch_y in batch_iterator(X_train, y_train,
+                                               config.batch_size, permute=True):
             output = model(batch_X)
 
             loss = criterion(output, batch_y)
@@ -86,31 +63,27 @@ def train(data, model, scale, config):
             model.backward(grad)
 
             optimizer.optimise()
-            # model.zero_grad()
 
-            profiler.tock()
 
-            # if i % 2 == 1:
-            test_pred = model(X_test)
-            test_loss = criterion(test_pred, y_test)
-            test_acc = accuracy(torch.argmax(test_pred, dim=1),
-                                torch.argmax(y_test, dim=1))
+        test_pred = model(X_test)
+        test_loss = criterion(test_pred, y_test)
+        test_acc = accuracy(torch.argmax(test_pred, dim=1),
+                            torch.argmax(y_test, dim=1))
 
-            pred = model(X_train)
-            loss = criterion(pred, y_train)
-            acc = accuracy(torch.argmax(pred, dim=1),
-                           torch.argmax(y_train, dim=1))
+        pred = model(X_train)
+        acc = accuracy(torch.argmax(pred, dim=1),
+                       torch.argmax(y_train, dim=1))
 
-            history.update(j, loss, test_loss, acc, test_acc)
-            history.print_progress()
-            j += 1
+        history.update(i, loss, test_loss, acc, test_acc)
+        history.print_progress()
+
+        profiler.tock()
     history.visualize()
-
     print(profiler)
-    print("========== RESULT ==========")
 
-def evaluate(data, model, scale, config):
-    device = get_device(config.device)
+
+
+def evaluate(data, model, scale, device):
     X, y, _, _ = data.split(1, shuffle=False)
     X, y = prep_data(X, y, device)
 
@@ -124,7 +97,7 @@ def evaluate(data, model, scale, config):
     profiler.tock()
     print(profiler)
 
-    criterion = BCELoss()
+    criterion = get_loss('bce')
     error = criterion(pred, y)
     print("loss: {:.4f}".format(error))
 
@@ -138,10 +111,15 @@ if __name__ == '__main__':
     parser.add_argument("--data", type=str, default="data/data.csv",
                         help="Path to train dataset")
     parser.add_argument("--config", type=str, default="config.yaml",
-                        help="Path to train dataset")
+                        help="Path to config.yaml")
+    parser.add_argument("--output", type=Path, default="data/model.torch",
+                        help="Path to config.yaml")
+    parser.add_argument("-t", action="store_true", help="Train model")
+    parser.add_argument("-e", action="store_true", help="Evaluate model")
     args = parser.parse_args()
 
     config = Config(args.config)
+    device = get_device(config.device)
 
     if config.seed is not None:
         torch.manual_seed(config.seed)
@@ -149,11 +127,19 @@ if __name__ == '__main__':
 
     data = Dataset.read_csv(args.data, header=None)
 
-    scale = scalers[config.scale]()
+    scale = get_scaler(config.scale)
 
-    model = get_model(input_shape=30)
-    print(model)
+    model = get_model(input_shape=30,
+                      model_config=config.model)
 
-    train(data, model, scale, config)
+    if args.t:
+        print(model)
+        train(data, model, scale, config, device)
+        model.save(args.output, scale)
 
-    evaluate(data, model, scale, config)
+    if args.e:
+        if not args.output.exists():
+            exit("{} - does not exist".format(args.output))
+        print(model)
+        model.load(args.output, scale, device)
+        evaluate(data, model, scale, device)

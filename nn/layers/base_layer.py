@@ -30,6 +30,9 @@ class BaseLayer(object):
     def get_params(self):
         return []
 
+    def set_params(self, *params):
+        pass
+
     def get_grad_params(self):
         return []
 

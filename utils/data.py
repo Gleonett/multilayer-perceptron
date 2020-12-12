@@ -3,7 +3,7 @@ import pandas as pd
 from abc import ABC
 
 
-class Dataset(pd.DataFrame, ABC):
+class Dataset(pd.DataFrame):
 
     @staticmethod
     def read_csv(csv_path: str, **kwargs):

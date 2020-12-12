@@ -1,4 +1,3 @@
-import torch
 from torch import Tensor
 
 
@@ -28,20 +27,9 @@ class MinMaxScale(object):
         """
         return (x - self.min) / (self.max - self.min)
 
-    def to_dictionary(self) -> {str: Tensor}:
-        """
-        Put scale parameters to dictionary
-        :return: None
-        """
-        return {"min": self.min, "max": self.max}
+    def get_params(self) -> (Tensor, Tensor):
+        return self.min, self.max
 
-    def from_dictionary(self,
-                        dictionary: {str: Tensor},
-                        device: torch.device,
-                        dtype: torch.dtype):
-        """
-        Load scale parameters from dictionary
-        :return: None
-        """
-        self.min = dictionary["min"].to(device, dtype)
-        self.max = dictionary["max"].to(device, dtype)
+    def set_params(self, min, max):
+        self.min = min
+        self.max = max

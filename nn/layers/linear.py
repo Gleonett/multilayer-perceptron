@@ -44,6 +44,10 @@ class Linear(BaseLayer):
     def get_grad_params(self):
         return self.grad_W, self.grad_b
 
+    def set_params(self, W, b):
+        self.W = W
+        self.b = b
+
     def __str__(self):
         return '{} {}->{}'.format(type(self).__name__, *self.in_out)
 
