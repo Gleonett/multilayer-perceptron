@@ -64,7 +64,6 @@ def train(data, model, scale, config, device):
 
             optimizer.optimise()
 
-
         test_pred = model(X_test)
         test_loss = criterion(test_pred, y_test)
         test_acc = accuracy(torch.argmax(test_pred, dim=1),
@@ -80,7 +79,6 @@ def train(data, model, scale, config, device):
         profiler.tock()
     history.visualize()
     print(profiler)
-
 
 
 def evaluate(data, model, scale, device):
@@ -108,15 +106,18 @@ def evaluate(data, model, scale, device):
 if __name__ == '__main__':
     from argparse import ArgumentParser
     parser = ArgumentParser()
-    parser.add_argument("--data", type=str, default="data/data.csv",
-                        help="Path to train dataset")
-    parser.add_argument("--config", type=str, default="config.yaml",
-                        help="Path to config.yaml")
-    parser.add_argument("--output", type=Path, default="data/model.torch",
-                        help="Path to config.yaml")
+    parser.add_argument("--data", type=Path, default="data/data.csv",
+                        help="Path to train dataset. Default: data/data.csv")
+    parser.add_argument("--config", type=Path, default="config.yaml",
+                        help="Path to config.yaml. Default: config.yaml")
+    parser.add_argument("--weights", type=Path, default="data/model.torch",
+                        help="Path to model weights save/load. Default: data/model.torch")
     parser.add_argument("-t", action="store_true", help="Train model")
     parser.add_argument("-e", action="store_true", help="Evaluate model")
     args = parser.parse_args()
+
+    assert args.data.exists(), "{} - does not exist".format(args.data)
+    assert args.config.exists(), "{} - does not exist".format(args.config)
 
     config = Config(args.config)
     device = get_device(config.device)
@@ -135,11 +136,10 @@ if __name__ == '__main__':
     if args.t:
         print(model)
         train(data, model, scale, config, device)
-        model.save(args.output, scale)
+        model.save(args.weights, scale)
 
     if args.e:
-        if not args.output.exists():
-            exit("{} - does not exist".format(args.output))
+        assert args.weights.exists(), "{} - does not exist".format(args.weights)
         print(model)
-        model.load(args.output, scale, device)
+        model.load(args.weights, scale, device)
         evaluate(data, model, scale, device)
