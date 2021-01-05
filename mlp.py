@@ -151,6 +151,7 @@ if __name__ == '__main__':
 
     model = get_model(input_shape=30,
                       model_config=config.model)
+    model.to_device(device)
 
     if args.t:
         data = Dataset.read_csv(args.data_train, header=None)

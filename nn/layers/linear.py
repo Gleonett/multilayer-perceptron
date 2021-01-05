@@ -9,8 +9,8 @@ class Linear(BaseLayer):
     grad_W: torch.Tensor
     grad_b: torch.Tensor
 
-    def __init__(self, n_in, n_out, initializer: str = 'none'):
-        super(Linear, self).__init__()
+    def __init__(self, n_in, n_out, initializer: str = 'none', device: str = "cpu"):
+        super(Linear, self).__init__(device)
 
         self.in_out = (n_in, n_out)
         self.W = None
@@ -47,6 +47,14 @@ class Linear(BaseLayer):
     def set_params(self, W, b):
         self.W = W
         self.b = b
+
+    def to_device(self, device: str):
+        self.device = device
+        check_none = lambda x: x if x is None else x.to(device)
+        self.W = check_none(self.W)
+        self.b = check_none(self.b)
+        self.grad_W = check_none(self.grad_W)
+        self.grad_b = check_none(self.grad_b)
 
     def __str__(self):
         return '{} {}->{}'.format(type(self).__name__, *self.in_out)

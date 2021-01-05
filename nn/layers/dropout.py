@@ -16,7 +16,7 @@ class Dropout(BaseLayer):
 
     def update_output(self, input):
         if self.train_mode:
-            self.mask = torch.rand(input.shape) < self.keep_probability
+            self.mask = torch.rand(input.shape, device=self.device) < self.keep_probability
             input *= self.mask
         return input * self.scale
 
