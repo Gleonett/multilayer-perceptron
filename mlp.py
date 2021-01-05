@@ -33,6 +33,10 @@ def train(data, model, scale, config, device):
     from utils.train_history import TrainHistory
 
     X_train, y_train, X_test, y_test = data.split(config.train_part, shuffle=True)
+
+    assert len(X_train) > 0, "Wrong number of train examples"
+    assert len(X_test) > 0, "Wrong number of test examples"
+
     X_train, y_train = prep_data(X_train, y_train, device)
     X_test, y_test = prep_data(X_test, y_test, device)
 
@@ -41,7 +45,7 @@ def train(data, model, scale, config, device):
     print("first label in test part: {:.2f}%"
           .format(y_test[:, 0].sum().float() / y_test.shape[0] * 100))
 
-    scale.fit(X_train)
+    scale.fit(torch.cat([X_train, X_test], dim=0))
     X_train = scale(X_train)
     X_test = scale(X_test)
 
@@ -53,11 +57,12 @@ def train(data, model, scale, config, device):
 
     for i in range(1, config.epochs + 1):
         profiler.tick()
+        losses = []
         for batch_X, batch_y in batch_iterator(X_train, y_train,
                                                config.batch_size, permute=True):
             output = model(batch_X)
 
-            loss = criterion(output, batch_y)
+            losses.append(criterion(output, batch_y))
             grad = criterion.backward(output, batch_y)
 
             model.backward(grad)
@@ -73,8 +78,21 @@ def train(data, model, scale, config, device):
         acc = accuracy(torch.argmax(pred, dim=1),
                        torch.argmax(y_train, dim=1))
 
-        history.update(i, loss, test_loss, acc, test_acc)
+        history.update(i, np.mean(losses), test_loss, acc, test_acc)
         history.print_progress()
+
+        if config.cross_validation:
+            idxs = np.random.permutation(np.arange(X_train.shape[0] + X_test.shape[0]))
+
+            X = torch.cat([X_train, X_test], dim=0)
+            y = torch.cat([y_train, y_test], dim=0)
+            train_num = int(X.shape[0] * config.train_part)
+
+            X_train = X[idxs[train_num:]]
+            X_test = X[idxs[:train_num]]
+            y_train = y[idxs[train_num:]]
+            y_test = y[idxs[:train_num]]
+
 
         profiler.tock()
     history.visualize()
@@ -106,8 +124,10 @@ def evaluate(data, model, scale, device):
 if __name__ == '__main__':
     from argparse import ArgumentParser
     parser = ArgumentParser()
-    parser.add_argument("--data", type=Path, default="data/data.csv",
+    parser.add_argument("--data_train", type=Path, default="data/data.csv",
                         help="Path to train dataset. Default: data/data.csv")
+    parser.add_argument("--data_test", type=Path, default="data/data.csv",
+                        help="Path to test dataset. Default: data/data.csv")
     parser.add_argument("--config", type=Path, default="config.yaml",
                         help="Path to config.yaml. Default: config.yaml")
     parser.add_argument("--weights", type=Path, default="data/model.torch",
@@ -116,7 +136,8 @@ if __name__ == '__main__':
     parser.add_argument("-e", action="store_true", help="Evaluate model")
     args = parser.parse_args()
 
-    assert args.data.exists(), "{} - does not exist".format(args.data)
+    assert args.data_train.exists(), "{} - does not exist".format(args.data_train)
+    assert args.data_test.exists(), "{} - does not exist".format(args.data_test)
     assert args.config.exists(), "{} - does not exist".format(args.config)
 
     config = Config(args.config)
@@ -126,19 +147,19 @@ if __name__ == '__main__':
         torch.manual_seed(config.seed)
         np.random.seed(config.seed)
 
-    data = Dataset.read_csv(args.data, header=None)
-
     scale = get_scaler(config.scale)
 
     model = get_model(input_shape=30,
                       model_config=config.model)
 
     if args.t:
+        data = Dataset.read_csv(args.data_train, header=None)
         print(model)
         train(data, model, scale, config, device)
         model.save(args.weights, scale)
 
     if args.e:
+        data = Dataset.read_csv(args.data_test, header=None)
         assert args.weights.exists(), "{} - does not exist".format(args.weights)
         print(model)
         model.load(args.weights, scale, device)

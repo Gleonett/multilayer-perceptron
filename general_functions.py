@@ -18,6 +18,7 @@ def get_model(input_shape: int, model_config: dict) -> BaseModel:
     model.add(Dropout(**model_config['dropout_2']))
     model.add(Linear(**model_config['linear_3']))
     model.add(ReLU())
+    model.add(Dropout(**model_config['dropout_3']))
     model.add(Linear(n_out=2, **model_config['linear_4']))
     model.add(Softmax())
     return model

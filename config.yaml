@@ -23,17 +23,29 @@ scale: "standard"
 # Only values can be changed. Do not change any keys!
 # 'n_out' must be the same as 'n_in' in next 'linear' layer.
 # 'initializer' ("xavier", "he" or "standard") - weights and bias initializer
-model: {
-    linear_1:   { n_out: 16, initializer: "xavier" },
-    dropout_1:  { p: 0.0 },  # 0 <= p <= 1
-    linear_2:   { n_in: 16, n_out: 32, initializer: "xavier" },
-    dropout_2:  { p: 0.0 },  # 0 <= p <= 1
-    linear_3:   { n_in: 32, n_out: 16, initializer: "xavier" },
-    linear_4:   { n_in: 16, initializer: "xavier" },
-}
+#model: {
+#    linear_1:   { n_out: 32, initializer: "standard" },
+#    dropout_1:  { p: 0.1 },  # 0 <= p <= 1
+#    linear_2:   { n_in: 32, n_out: 64, initializer: "standard" },
+#    dropout_2:  { p: 0.1 },  # 0 <= p <= 1
+#    linear_3:   { n_in: 64, n_out: 32, initializer: "standard" },
+#    dropout_3:  { p: 0.1 },  # 0 <= p <= 1
+#    linear_4:   { n_in: 32, initializer: "standard" },
+#}
 
+model: {
+    linear_1:   { n_out: 500, initializer: "standard" },
+    dropout_1:  { p: 0.1 },  # 0 <= p <= 1
+    linear_2:   { n_in: 500, n_out: 500, initializer: "standard" },
+    dropout_2:  { p: 0.1 },  # 0 <= p <= 1
+    linear_3:   { n_in: 500, n_out: 500, initializer: "standard" },
+    dropout_3:  { p: 0.1 },  # 0 <= p <= 1
+    linear_4:   { n_in: 500, initializer: "standard" },
+}
 ## Part of train dataset: 0 <= train_part <= 1
 train_part: 0.8
+## cross validation
+cross_validation: True
 
 ## maximum number of iterations for model training
 epochs: 1000
@@ -42,10 +54,10 @@ sgd_params: {
     ## Learning rate: https://en.wikipedia.org/wiki/Learning_rate
     ## In this implementation: a' = a - lr * gradient
     ## no additional manipulations to compute lr
-    lr: 0.01,
+    lr: 0.001,
     momentum: 0.0
 }
 
 ## Batch size: https://en.wikipedia.org/wiki/Stochastic_gradient_descent
 ## null - all values will be taken to calculate gradient
-batch_size: null
+batch_size: 64
