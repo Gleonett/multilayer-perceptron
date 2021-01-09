@@ -142,6 +142,7 @@ def parse_args():
 
 
 def main():
+    args = parse_args()
 
     config = Config(args.config)
     device = get_device(config.device)
@@ -171,8 +172,6 @@ def main():
 
 
 if __name__ == '__main__':
-    args = parse_args()
-
     try:
         main()
         exit(0)
