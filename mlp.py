@@ -62,7 +62,7 @@ def train(data, model, scale, config, device):
                                                config.batch_size, permute=True):
             output = model(batch_X)
 
-            losses.append(criterion(output, batch_y))
+            losses.append(criterion(output, batch_y).to("cpu"))
             grad = criterion.backward(output, batch_y)
 
             model.backward(grad)
@@ -95,7 +95,7 @@ def train(data, model, scale, config, device):
 
         profiler.tock()
     history.visualize()
-    print(profiler)
+    print('\n', profiler, sep='', end='\n\n')
 
 
 def evaluate(data, model, scale, device):
@@ -110,7 +110,7 @@ def evaluate(data, model, scale, device):
     profiler.tick()
     pred = model(X)
     profiler.tock()
-    print(profiler)
+    print(profiler, end='\n\n')
 
     criterion = get_loss('bce')
     error = criterion(pred, y)
@@ -123,9 +123,9 @@ def evaluate(data, model, scale, device):
 def parse_args():
     from argparse import ArgumentParser
     parser = ArgumentParser()
-    parser.add_argument("--data_train", type=Path, default="data/data_training.csv",
+    parser.add_argument("--data_train", type=Path, default="data/data.csv",
                         help="Path to train dataset. Default: data/data.csv")
-    parser.add_argument("--data_test", type=Path, default="data/data_test.csv",
+    parser.add_argument("--data_test", type=Path, default="data/data.csv",
                         help="Path to test dataset. Default: data/data.csv")
     parser.add_argument("--config", type=Path, default="config.yaml",
                         help="Path to config.yaml. Default: config.yaml")

@@ -23,6 +23,9 @@ class Dropout(BaseLayer):
     def update_grad(self, grad):
         return grad * self.mask
 
+    def __str__(self):
+        return "{}: p = {:.4f}".format(type(self).__name__, 1 - self.keep_probability)
+
 
 def __dropout_test(LayerTest):
     # Works only with 1 and 0 due to random

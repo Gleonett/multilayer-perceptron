@@ -60,7 +60,7 @@ class Linear(BaseLayer):
         self.grad_b = check_none(self.grad_b)
 
     def __str__(self):
-        return '{} {}->{}'.format(type(self).__name__, *self.in_out)
+        return '{}: {}->{}'.format(type(self).__name__, *self.in_out)
 
 
 def __linear_test(LayerTest):
