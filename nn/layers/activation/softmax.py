@@ -21,6 +21,7 @@ class Softmax(BaseLayer):
         dA = (grad * p).sum(dim=self.dim, keepdim=True)
         return p * (grad - dA)
 
+
 def __softmax_test(LayerTest):
     shape = (500, 2)
     dim = -1

@@ -5,6 +5,7 @@ from nn.losses.base_loss import BaseLoss
 
 EPSILON = 1e-7
 
+
 class BCELoss(BaseLoss):
 
     def update_output(self, input: Tensor, target: Tensor):

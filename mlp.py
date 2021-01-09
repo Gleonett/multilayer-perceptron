@@ -93,7 +93,6 @@ def train(data, model, scale, config, device):
             y_train = y[idxs[train_num:]]
             y_test = y[idxs[:train_num]]
 
-
         profiler.tock()
     history.visualize()
     print(profiler)
@@ -121,12 +120,12 @@ def evaluate(data, model, scale, device):
     print("accuracy: {:.4f}".format(acc))
 
 
-if __name__ == '__main__':
+def parse_args():
     from argparse import ArgumentParser
     parser = ArgumentParser()
-    parser.add_argument("--data_train", type=Path, default="data/data.csv",
+    parser.add_argument("--data_train", type=Path, default="data/data_training.csv",
                         help="Path to train dataset. Default: data/data.csv")
-    parser.add_argument("--data_test", type=Path, default="data/data.csv",
+    parser.add_argument("--data_test", type=Path, default="data/data_test.csv",
                         help="Path to test dataset. Default: data/data.csv")
     parser.add_argument("--config", type=Path, default="config.yaml",
                         help="Path to config.yaml. Default: config.yaml")
@@ -139,6 +138,10 @@ if __name__ == '__main__':
     assert args.data_train.exists(), "{} - does not exist".format(args.data_train)
     assert args.data_test.exists(), "{} - does not exist".format(args.data_test)
     assert args.config.exists(), "{} - does not exist".format(args.config)
+    return args
+
+
+def main():
 
     config = Config(args.config)
     device = get_device(config.device)
@@ -160,8 +163,19 @@ if __name__ == '__main__':
         model.save(args.weights, scale)
 
     if args.e:
-        data = Dataset.read_csv(args.data_test, header=None)
         assert args.weights.exists(), "{} - does not exist".format(args.weights)
+        data = Dataset.read_csv(args.data_test, header=None)
         print(model)
         model.load(args.weights, scale, device)
         evaluate(data, model, scale, device)
+
+
+if __name__ == '__main__':
+    args = parse_args()
+
+    try:
+        main()
+        exit(0)
+    except Exception as exc:
+        print(exc)
+        exit(1)

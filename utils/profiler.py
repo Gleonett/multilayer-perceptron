@@ -50,7 +50,8 @@ class Profiler(object):
 
     def __insert_middle_substr(self, size=50):
         buf_str, main_char = '\0', '#'
-        substring = ('{:^' + str(size) + '}').format(buf_str + self.name.replace(' ', buf_str) + buf_str)
+        substring = ('{:^' + str(size) + '}').\
+            format(buf_str + self.name.replace(' ', buf_str) + buf_str)
         return substring.replace(' ', main_char).replace(buf_str, ' ')
 
     def __str__(self):

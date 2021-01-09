@@ -9,6 +9,7 @@ class PrintColors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+
 def cls_path(obj):
     path = '.'.join([v.__name__ for v in reversed(type(obj).__mro__)])
     return path

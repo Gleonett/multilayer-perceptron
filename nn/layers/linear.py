@@ -49,8 +49,11 @@ class Linear(BaseLayer):
         self.b = b
 
     def to_device(self, device: str):
+
+        def check_none(x):
+            return x if x is None else x.to(device)
+
         self.device = device
-        check_none = lambda x: x if x is None else x.to(device)
         self.W = check_none(self.W)
         self.b = check_none(self.b)
         self.grad_W = check_none(self.grad_W)
@@ -80,4 +83,3 @@ if __name__ == '__main__':
     from test.layer_test import LayerTest
 
     __linear_test(LayerTest)
-

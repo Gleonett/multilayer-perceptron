@@ -42,13 +42,19 @@ model: {
     dropout_3:  { p: 0.1 },  # 0 <= p <= 1
     linear_4:   { n_in: 500, initializer: "standard" },
 }
+
 ## Part of train dataset: 0 <= train_part <= 1
 train_part: 0.8
+
 ## cross validation
 cross_validation: True
 
-## maximum number of iterations for model training
+## Number of iterations for model training
 epochs: 1000
+
+## Batch size: https://en.wikipedia.org/wiki/Stochastic_gradient_descent
+## null - all values will be taken to calculate gradient
+batch_size: 64
 
 sgd_params: {
     ## Learning rate: https://en.wikipedia.org/wiki/Learning_rate
@@ -57,7 +63,3 @@ sgd_params: {
     lr: 0.001,
     momentum: 0.0
 }
-
-## Batch size: https://en.wikipedia.org/wiki/Stochastic_gradient_descent
-## null - all values will be taken to calculate gradient
-batch_size: 64

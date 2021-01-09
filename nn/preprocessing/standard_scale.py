@@ -1,7 +1,4 @@
-import torch
 from torch import Tensor
-
-from nn.preprocessing.minmax_scale import MinMaxScale
 
 
 class StandardScale(object):

@@ -1,5 +1,6 @@
 from torch import Tensor
 
+
 class BaseLoss(object):
 
     def update_output(self, input: Tensor, target: Tensor):

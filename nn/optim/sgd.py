@@ -1,5 +1,6 @@
 import torch
 
+
 class SGD(object):
     def __init__(self, model, lr, momentum=0.0):
         self.lr = lr
